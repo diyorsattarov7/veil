@@ -6,31 +6,31 @@
 
 #include <string>
 
-namespace veil::network {
+namespace veil::network
+{
 
-class TcpProxy {
+class tcp_proxy
+{
 public:
-    using tcp = boost::asio::ip::tcp;
+	using tcp = boost::asio::ip::tcp;
 
-    TcpProxy(
-        boost::asio::io_context& io,
-        unsigned short port,
-        boost::asio::ssl::context& server_context,
-        std::string upstream_host,
-        unsigned short upstream_port
-    );
+	tcp_proxy(boost::asio::io_context &io,
+		  unsigned short port,
+		  boost::asio::ssl::context &server_context,
+		  std::string upstream_host,
+		  unsigned short upstream_port);
 
-    void start();
+	void start();
 
 private:
-    void accept();
+	void accept();
 
-    tcp::acceptor acceptor_;
-    boost::asio::ssl::context& server_context_;
-    std::string upstream_host_;
-    unsigned short upstream_port_;
+	tcp::acceptor acceptor_;
+	boost::asio::ssl::context &server_context_;
+	std::string upstream_host_;
+	unsigned short upstream_port_;
 };
 
-}
+} // namespace veil::network
 
 #endif // VEIL_TCP_PROXY_HPP

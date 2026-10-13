@@ -6,24 +6,26 @@
 
 #include <string>
 
-namespace veil::network {
+namespace veil::network
+{
 
-class TlsClient {
+class tls_client
+{
 public:
-    using tcp = boost::asio::ip::tcp;
+	using tcp = boost::asio::ip::tcp;
 
-    explicit TlsClient(boost::asio::io_context& io);
+	explicit tls_client(boost::asio::io_context &io);
 
-    void connect(const std::string& host, unsigned short port);
-    
-    std::string get(const std::string& host, const std::string& target);
+	void connect(const std::string &host, unsigned short port);
+
+	std::string get(const std::string &host, const std::string &target);
 
 private:
-    boost::asio::ssl::context ssl_context_;
-    tcp::resolver resolver_;
-    boost::asio::ssl::stream<tcp::socket> stream_;
+	boost::asio::ssl::context ssl_context_;
+	tcp::resolver resolver_;
+	boost::asio::ssl::stream<tcp::socket> stream_;
 };
 
-}
+} // namespace veil::network
 
 #endif // VEIL_TLS_CLIENT_HPP

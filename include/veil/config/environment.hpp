@@ -3,21 +3,20 @@
 
 #include <string>
 
-namespace veil::config {
+namespace veil::config
+{
 
-struct Environment {
-    std::string host;
+struct environment {
+	std::string host;
 
-    unsigned short chat_port = 5000;
-    unsigned short config_port = 5001;
+	unsigned short chat_port = 5000;
+	unsigned short config_port = 5001;
 
-    std::string cert_file;
-    std::string key_file;
-    std::string ca_file;
+	std::string cert_file;
+	std::string key_file;
+	std::string ca_file;
 
-    static Environment load(
-        const std::string& path = ".env"
-    );
+	static environment load(const std::string &path = ".env");
 };
 
 } // namespace veil::config

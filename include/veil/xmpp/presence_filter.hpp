@@ -4,20 +4,20 @@
 #include <string>
 #include <string_view>
 
-namespace veil::xmpp {
+namespace veil::xmpp
+{
 
-class PresenceFilter {
+class presence_filter
+{
 public:
-    explicit PresenceFilter(
-        bool invisible = true,
-        bool allow_directed_presence = true
-    );
+	explicit presence_filter(bool invisible = true,
+				 bool allow_directed_presence = true);
 
-    std::string process(std::string_view stanza) const;
+	std::string process(std::string_view stanza) const;
 
 private:
-    bool invisible_;
-    bool allow_directed_presence_;
+	bool invisible_;
+	bool allow_directed_presence_;
 };
 
 } // namespace veil::xmpp
