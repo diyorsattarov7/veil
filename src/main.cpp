@@ -7,98 +7,128 @@
 #include <boost/asio.hpp>
 #include <boost/asio/ssl.hpp>
 
+#include <spdlog/sinks/stdout_color_sinks.h>
+#include <spdlog/spdlog.h>
+
 #include <exception>
-#include <iostream>
 #include <memory>
 #include <string>
 #include <utility>
 
 int main()
 {
-	try {
-		namespace asio = boost::asio;
+    auto logger = spdlog::stdout_color_mt("veil");
+    auto chat_logger = spdlog::stdout_color_mt("chat");
+    auto riot_logger = spdlog::stdout_color_mt("riot");
+    auto http_logger = spdlog::stdout_color_mt("http");
 
-		const auto env = veil::config::environment::load();
+    spdlog::set_pattern("[%H:%M:%S] [%^%l%$] [%n] %v");
 
-		asio::io_context io;
+    spdlog::set_level(spdlog::level::debug);
 
-		asio::ssl::context chat_context(asio::ssl::context::tls_server);
+    try
+    {
+        namespace asio = boost::asio;
 
-		chat_context.use_certificate_chain_file(env.cert_file);
+        logger->info("Starting Veil");
 
-		chat_context.use_private_key_file(env.key_file,
-						  asio::ssl::context::pem);
+        const auto env = veil::config::environment::load();
 
-		std::cout << "[TLS] Certificate loaded\n";
+        logger->debug("Environment loaded");
 
-		std::unique_ptr<veil::network::tcp_proxy> chat_proxy;
+        asio::io_context io;
 
-		std::string chat_host;
-		unsigned short chat_port = 0;
+        asio::ssl::context chat_context(asio::ssl::context::tls_server);
 
-		veil::network::http_server server(io,
-						  env.config_port,
-						  env.host,
-						  env.chat_port,
-						  env.ca_file);
+        chat_context.use_certificate_chain_file(env.cert_file);
 
-		server.set_chat_server_handler([&](std::string host,
-						   unsigned short port)
-						       -> bool {
-			if (chat_proxy) {
-				return host == chat_host && port == chat_port;
-			}
+        chat_context.use_private_key_file(env.key_file,
+                                          asio::ssl::context::pem);
 
-			try {
-				auto proxy = std::make_unique<
-					veil::network::tcp_proxy>(io,
-								  env.chat_port,
-								  chat_context,
-								  host,
-								  port,
-								  env.ca_file);
+        logger->debug("TLS certificate and private key loaded");
 
-				proxy->start();
+        std::unique_ptr<veil::network::tcp_proxy> chat_proxy;
 
-				chat_host = std::move(host);
-				chat_port = port;
-				chat_proxy = std::move(proxy);
+        std::string chat_host;
+        unsigned short chat_port = 0;
 
-				std::cout << "[CHAT] Proxy listening on "
-					  << env.chat_port << '\n';
+        veil::network::http_server server(io, env.config_port, env.host,
+                                          env.chat_port, env.ca_file);
 
-				std::cout << "[CHAT] Upstream: " << chat_host
-					  << ':' << chat_port << '\n';
+        server.set_chat_server_handler(
+            [&](std::string host, unsigned short port) -> bool
+            {
+                if (chat_proxy)
+                {
+                    if (host != chat_host || port != chat_port)
+                    {
+                        chat_logger->warn(
+                            "Upstream changed from {}:{} to {}:{}", chat_host,
+                            chat_port, host, port);
 
-				std::cout << "[CHAT] Redirect: " << chat_host
-					  << ':' << chat_port << " -> "
-					  << env.host << ':' << env.chat_port
-					  << '\n';
+                        return false;
+                    }
 
-				return true;
-			} catch (const std::exception &e) {
-				std::cerr
-					<< "[CHAT] Proxy startup: " << e.what()
-					<< '\n';
-				return false;
-			}
-		});
+                    return true;
+                }
 
-		server.start();
+                try
+                {
+                    auto proxy = std::make_unique<veil::network::tcp_proxy>(
+                        io, env.chat_port, chat_context, host, port,
+                        env.ca_file);
 
-		auto executable = veil::riot::riot_client::discover();
-		veil::riot::riot_launcher launcher(executable);
+                    proxy->start();
 
-		const std::string config_url =
-			"http://127.0.0.1:" + std::to_string(env.config_port);
+                    chat_host = std::move(host);
+                    chat_port = port;
+                    chat_proxy = std::move(proxy);
 
-		launcher.launch_league(config_url);
+                    chat_logger->info("Proxy listening on port {}",
+                                      env.chat_port);
 
-		io.run();
-	} catch (const std::exception &e) {
-		std::cerr << "Error: " << e.what() << '\n';
-		return 1;
-	}
+                    chat_logger->debug("Upstream: {}:{}", chat_host, chat_port);
 
-	return 0;
+                    chat_logger->debug("Redirect: {}:{} -> {}:{}", chat_host,
+                                       chat_port, env.host, env.chat_port);
+
+                    return true;
+                }
+                catch (const std::exception &e)
+                {
+                    chat_logger->error("Failed to start proxy: {}", e.what());
+
+                    return false;
+                }
+            });
+
+        server.start();
+
+        logger->debug("Configuration server started on port {}",
+                      env.config_port);
+
+        auto executable = veil::riot::riot_client::discover();
+
+        riot_logger->debug("Riot Client executable: {}", executable.string());
+
+        veil::riot::riot_launcher launcher(executable);
+
+        const std::string config_url =
+            "http://127.0.0.1:" + std::to_string(env.config_port);
+
+        launcher.launch_league(config_url);
+
+        riot_logger->info("Riot Client launch requested");
+
+        io.run();
+
+        logger->info("Veil stopped");
+    }
+    catch (const std::exception &e)
+    {
+        logger->critical("Fatal error: {}", e.what());
+        return 1;
+    }
+
+    return 0;
 }

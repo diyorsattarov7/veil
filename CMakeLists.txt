@@ -21,6 +21,7 @@ endif()
 
 find_package(OpenSSL REQUIRED)
 find_package(pugixml CONFIG REQUIRED)
+find_package(spdlog CONFIG REQUIRED)
 
 add_executable(veil
     src/main.cpp
@@ -55,6 +56,7 @@ target_link_libraries(veil
         OpenSSL::SSL
         OpenSSL::Crypto
         pugixml::pugixml
+        spdlog::spdlog
 )
 
 if(WIN32)

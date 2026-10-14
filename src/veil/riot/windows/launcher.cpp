@@ -1,5 +1,7 @@
 #include <veil/riot/launcher.hpp>
 
+#include <spdlog/spdlog.h>
+
 #include <Windows.h>
 
 #include <stdexcept>
@@ -16,42 +18,43 @@ riot_launcher::riot_launcher(std::filesystem::path executable)
 
 void riot_launcher::launch_league(const std::string &config_url) const
 {
-	if (!std::filesystem::is_regular_file(executable_)) {
-		throw std::runtime_error("Riot Client executable not found");
-	}
+    auto logger = spdlog::get("riot");
 
-	std::wstring arguments = L"\"" + executable_.wstring() +
-				 L"\" "
-				 L"--launch-product=league_of_legends "
-				 L"--launch-patchline=live "
-				 L"--allow-direct-launch";
+    if (!std::filesystem::is_regular_file(executable_))
+    {
+        throw std::runtime_error("Riot Client executable not found");
+    }
 
-	if (!config_url.empty()) {
-		std::wstring url(config_url.begin(), config_url.end());
+    std::wstring arguments = L"\"" + executable_.wstring() +
+                             L"\" "
+                             L"--launch-product=league_of_legends "
+                             L"--launch-patchline=live "
+                             L"--allow-direct-launch";
 
-		arguments += L" --client-config-url=\"" + url + L"\"";
-	}
+    if (!config_url.empty())
+    {
+        std::wstring url(config_url.begin(), config_url.end());
 
-	STARTUPINFOW startup{};
-	startup.cb = sizeof(startup);
+        arguments += L" --client-config-url=\"" + url + L"\"";
+    }
 
-	PROCESS_INFORMATION process{};
+    STARTUPINFOW startup{};
+    startup.cb = sizeof(startup);
 
-	if (!CreateProcessW(executable_.c_str(),
-			    arguments.data(),
-			    nullptr,
-			    nullptr,
-			    FALSE,
-			    0,
-			    nullptr,
-			    nullptr,
-			    &startup,
-			    &process)) {
-		throw std::runtime_error("Failed to launch Riot Client");
-	}
+    PROCESS_INFORMATION process{};
 
-	CloseHandle(process.hThread);
-	CloseHandle(process.hProcess);
+    logger->debug("Starting Riot Client process");
+
+    if (!CreateProcessW(executable_.c_str(), arguments.data(), nullptr, nullptr,
+                        FALSE, 0, nullptr, nullptr, &startup, &process))
+    {
+        throw std::runtime_error("Failed to launch Riot Client");
+    }
+
+    logger->debug("Riot Client process created (PID {})", process.dwProcessId);
+
+    CloseHandle(process.hThread);
+    CloseHandle(process.hProcess);
 }
 
 } // namespace veil::riot
