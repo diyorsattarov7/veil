@@ -89,4 +89,20 @@ jobs:
           cmake -S . -B build `
             -G Ninja `
             -DCMAKE_BUILD_TYPE=Release `
-            -DBUILD_TEST = ON
+            -DBUILD_TESTING=ON `
+            -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake"
+
+      - name: Configure macOS
+        if: runner.os == 'macOS'
+        run: |
+          cmake -S . -B build \
+            -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DBUILD_TESTING=ON \
+            -DCMAKE_PREFIX_PATH="$(brew --prefix);$(brew --prefix openssl@3)"
+
+      - name: Build
+        run: cmake --build build --config Release --parallel
+
+      - name: Test
+        run: ctest --test-dir build -C Release --output-on-failure
