@@ -23,6 +23,7 @@ Veil attempts to provide invisible mode for League of Legends by intercepting an
 - [Homebrew](https://brew.sh/) (macOS)
 - [DuckDNS](https://www.duckdns.org/) hostname
 - [spdlog](https://github.com/gabime/spdlog) — C++ logging library
+- [GoogleTest](https://github.com/google/googletest) — C++ unit testing framework
 - Trusted TLS certificate and private key for your hostname
 
 ## Setup
@@ -44,7 +45,7 @@ The dependencies are declared in `vcpkg.json`. Configure CMake with your vcpkg t
 Install dependencies using Homebrew:
 
 ```bash
-brew install cmake ninja boost openssl@3 pugixml spdlog
+brew install cmake ninja boost openssl@3 pugixml spdlog googletest
 ```
 
 ### 2. Configure DuckDNS and TLS certificates
