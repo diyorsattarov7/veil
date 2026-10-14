@@ -10,8 +10,15 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-find_package(boost_asio CONFIG REQUIRED)
-find_package(boost_json CONFIG REQUIRED)
+if(WIN32)
+    find_package(boost_asio CONFIG REQUIRED)
+    find_package(boost_json CONFIG REQUIRED)
+elseif(APPLE)
+    find_package(Boost REQUIRED COMPONENTS json)
+else()
+    message(FATAL_ERROR "Unsupported platform")
+endif()
+
 find_package(OpenSSL REQUIRED)
 find_package(pugixml CONFIG REQUIRED)
 
@@ -36,10 +43,7 @@ elseif(APPLE)
         src/veil/riot/macos/client.cpp
         src/veil/riot/macos/launcher.cpp
     )
-else()
-    message(FATAL_ERROR "Unsupported platform")
 endif()
-
 
 target_include_directories(veil
     PRIVATE
@@ -48,27 +52,34 @@ target_include_directories(veil
 
 target_link_libraries(veil
     PRIVATE
-        Boost::asio
-        Boost::json
         OpenSSL::SSL
         OpenSSL::Crypto
         pugixml::pugixml
 )
 
 if(WIN32)
+    target_link_libraries(veil
+        PRIVATE
+            Boost::asio
+            Boost::json
+            ws2_32
+    )
+
     add_custom_command(TARGET veil POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy -t
             $<TARGET_FILE_DIR:veil>
             $<TARGET_RUNTIME_DLLS:veil>
         COMMAND_EXPAND_LISTS
     )
+elseif(APPLE)
+    target_link_libraries(veil
+        PRIVATE
+            Boost::headers
+            Boost::json
+    )
 endif()
 
 if(MSVC)
     target_compile_options(veil PRIVATE /EHsc)
     target_compile_definitions(veil PRIVATE _WIN32_WINNT=0x0A00)
-endif()
-
-if(WIN32)
-    target_link_libraries(veil PRIVATE ws2_32)
 endif()
