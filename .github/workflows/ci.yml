@@ -89,4 +89,4 @@ jobs:
           cmake -S . -B build `
             -G Ninja `
             -DCMAKE_BUILD_TYPE=Release `
-            -DBUILD_TEST
+            -DBUILD_TEST = ON
