@@ -24,7 +24,7 @@ jobs:
           - os: macos-15-intel
             platform: macos-x64
 
-    runs-on: ${{ matrix.os }}
+    runs-on: \${{ matrix.os }}
 
     env:
       VCPKG_DEFAULT_TRIPLET: x64-windows
@@ -37,24 +37,15 @@ jobs:
         if: runner.os == 'Windows'
         uses: ilammy/msvc-dev-cmd@v1
 
-      - name: Set up vcpkg cache
+      - name: Configure GitHub Actions Runtime (for vcpkg GHA cache)
+        if: runner.os == 'Windows'
+        uses: crazy-max/ghaction-github-runtime@v3
+
+      - name: Set up vcpkg backend env
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          New-Item -ItemType Directory -Force `
-            -Path "${{ github.workspace }}/vcpkg-cache" | Out-Null
-
-          "VCPKG_BINARY_SOURCES=clear;files,${{ github.workspace }}/vcpkg-cache,readwrite" |
-            Out-File -FilePath $env:GITHUB_ENV -Append
-
-      - name: Restore vcpkg cache
-        if: runner.os == 'Windows'
-        uses: actions/cache@v4
-        with:
-          path: vcpkg-cache
-          key: vcpkg-windows-x64-${{ hashFiles('vcpkg.json', 'vcpkg-configuration.json') }}
-          restore-keys: |
-            vcpkg-windows-x64-
+          "VCPKG_BINARY_SOURCES=clear;gha,readwrite" | Out-File -FilePath \$env:GITHUB_ENV -Append
 
       - name: Install Windows dependencies
         if: runner.os == 'Windows'
@@ -65,17 +56,17 @@ jobs:
       - name: Configure Homebrew cache
         if: runner.os == 'macOS'
         run: |
-          echo "HOMEBREW_NO_AUTO_UPDATE=1" >> "$GITHUB_ENV"
-          echo "HOMEBREW_CACHE=$(brew --cache)" >> "$GITHUB_ENV"
+          echo "HOMEBREW_NO_AUTO_UPDATE=1" >> "\$GITHUB_ENV"
+          echo "HOMEBREW_CACHE=\((brew --cache)" >> "\)GITHUB_ENV"
 
       - name: Restore Homebrew cache
         if: runner.os == 'macOS'
         uses: actions/cache@v4
         with:
-          path: ${{ env.HOMEBREW_CACHE }}
-          key: homebrew-${{ matrix.platform }}-${{ hashFiles('.github/workflows/release.yml', '.github/workflows/ci.yml') }}
+          path: \${{ env.HOMEBREW_CACHE }}
+          key: homebrew-\({{ matrix.platform }}-\){{ hashFiles('.github/workflows/release.yml', '.github/workflows/ci.yml') }}
           restore-keys: |
-            homebrew-${{ matrix.platform }}-
+            homebrew-\${{ matrix.platform }}-
 
       - name: Install macOS dependencies
         if: runner.os == 'macOS'
@@ -90,7 +81,7 @@ jobs:
             -G Ninja `
             -DCMAKE_BUILD_TYPE=Release `
             -DBUILD_TESTING=ON `
-            -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake"
+            -DCMAKE_TOOLCHAIN_FILE="\$env:VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake"
 
       - name: Configure macOS
         if: runner.os == 'macOS'
@@ -99,7 +90,7 @@ jobs:
             -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
             -DBUILD_TESTING=ON \
-            -DCMAKE_PREFIX_PATH="$(brew --prefix);$(brew --prefix openssl@3)"
+            -DCMAKE_PREFIX_PATH="\((brew --prefix);\)(brew --prefix openssl@3)"
 
       - name: Build
         run: cmake --build build --config Release --parallel
