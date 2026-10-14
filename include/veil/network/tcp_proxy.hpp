@@ -18,7 +18,8 @@ public:
 		  unsigned short port,
 		  boost::asio::ssl::context &server_context,
 		  std::string upstream_host,
-		  unsigned short upstream_port);
+		  unsigned short upstream_port,
+		  std::string ca_file);
 
 	void start();
 
@@ -29,6 +30,7 @@ private:
 	boost::asio::ssl::context &server_context_;
 	std::string upstream_host_;
 	unsigned short upstream_port_;
+	std::string ca_file_;
 };
 
 } // namespace veil::network

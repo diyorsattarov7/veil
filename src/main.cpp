@@ -55,7 +55,8 @@ int main()
 								  env.chat_port,
 								  chat_context,
 								  host,
-								  port);
+								  port,
+								  env.ca_file);
 
 				proxy->start();
 

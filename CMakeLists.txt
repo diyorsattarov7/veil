@@ -20,13 +20,26 @@ add_executable(veil
     src/veil/network/tcp_proxy.cpp
     src/veil/network/proxy_session.cpp
     src/veil/network/tls_client.cpp
-    src/veil/riot/launcher.cpp
-    src/veil/riot/client.cpp
     src/veil/network/http_server.cpp
     src/veil/xmpp/stream_parser.cpp
     src/veil/xmpp/presence_filter.cpp
     src/veil/config/environment.cpp
 )
+
+if(WIN32)
+    target_sources(veil PRIVATE
+        src/veil/riot/windows/client.cpp
+        src/veil/riot/windows/launcher.cpp
+    )
+elseif(APPLE)
+    target_sources(veil PRIVATE
+        src/veil/riot/macos/client.cpp
+        src/veil/riot/macos/launcher.cpp
+    )
+else()
+    message(FATAL_ERROR "Unsupported platform")
+endif()
+
 
 target_include_directories(veil
     PRIVATE

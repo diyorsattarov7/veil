@@ -22,7 +22,8 @@ public:
 	proxy_session(tcp::socket client,
 		      boost::asio::ssl::context &server_context,
 		      std::string upstream_host,
-		      unsigned short upstream_port);
+		      unsigned short upstream_port,
+		      std::string ca_file);
 
 	void start();
 

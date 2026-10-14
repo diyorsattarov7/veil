@@ -21,7 +21,8 @@ using error_code = boost::system::error_code;
 proxy_session::proxy_session(tcp::socket client,
 			     asio::ssl::context &server_context,
 			     std::string upstream_host,
-			     unsigned short upstream_port)
+			     unsigned short upstream_port,
+			     std::string ca_file)
     : client_(std::move(client), server_context)
     , upstream_context_(asio::ssl::context::tls_client)
     , upstream_(client_.get_executor(), upstream_context_)
@@ -30,9 +31,8 @@ proxy_session::proxy_session(tcp::socket client,
     , upstream_port_(upstream_port)
     , xmpp_parser_(veil::xmpp::stream_parser::Mode::Invisible)
 {
-
 	upstream_context_.set_verify_mode(asio::ssl::verify_peer);
-	upstream_context_.load_verify_file("certs/cacert.pem");
+	upstream_context_.load_verify_file(ca_file);
 
 	upstream_.set_verify_callback(
 		asio::ssl::host_name_verification(upstream_host_));

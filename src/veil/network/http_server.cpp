@@ -79,15 +79,22 @@ bool patch_chat_config(std::string &body,
 	}
 
 	auto &affinity_map = affinities->as_object();
-	auto *na1 = affinity_map.if_contains("na1");
 
-	if (!na1 || !na1->is_string() || na1->as_string() != original_host) {
-		std::cout << "[CHAT] NA1 affinity mismatch; "
+	bool matched = false;
+
+	for (const auto &entry : affinity_map) {
+		if (entry.value().is_string() &&
+		    entry.value().as_string() == original_host) {
+			matched = true;
+			break;
+		}
+	}
+
+	if (!matched) {
+		std::cout << "[CHAT] No matching affinity; "
 			     "redirect skipped\n";
 		return false;
 	}
-
-	std::cout << "[CHAT] NA1 affinity matches: " << original_host << '\n';
 
 	if (!on_chat_server ||
 	    !on_chat_server(original_host,
@@ -99,7 +106,13 @@ bool patch_chat_config(std::string &body,
 
 	*host = local_chat_host;
 	*port = local_chat_port;
-	*na1 = local_chat_host;
+
+	for (auto &entry : affinity_map) {
+		if (entry.value().is_string() &&
+		    entry.value().as_string() == original_host) {
+			entry.value() = local_chat_host;
+		}
+	}
 
 	body = json::serialize(document);
 
