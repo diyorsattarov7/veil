@@ -85,3 +85,9 @@ if(MSVC)
     target_compile_options(veil PRIVATE /EHsc)
     target_compile_definitions(veil PRIVATE _WIN32_WINNT=0x0A00)
 endif()
+
+include(CTest)
+
+if(BUILD_TESTING)
+    add_subdirectory(tests)
+endif()
