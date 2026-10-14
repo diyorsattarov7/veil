@@ -1,3 +1,4 @@
+
 name: Release
 
 on:
@@ -52,7 +53,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: vcpkg-cache
-          key: vcpkg-windows-x64-${{ hashFiles('vcpkg.json', 'vcpkg-configuration.json', 'CMakeLists.txt') }}
+          key: vcpkg-windows-x64-${{ hashFiles('vcpkg.json', 'vcpkg-configuration.json') }}
           restore-keys: |
             vcpkg-windows-x64-
 
@@ -61,6 +62,21 @@ jobs:
         shell: pwsh
         run: |
           vcpkg install --triplet x64-windows
+
+      - name: Configure Homebrew cache
+        if: runner.os == 'macOS'
+        run: |
+          echo "HOMEBREW_NO_AUTO_UPDATE=1" >> "$GITHUB_ENV"
+          echo "HOMEBREW_CACHE=$(brew --cache)" >> "$GITHUB_ENV"
+
+      - name: Restore Homebrew cache
+        if: runner.os == 'macOS'
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.HOMEBREW_CACHE }}
+          key: homebrew-${{ matrix.platform }}-${{ hashFiles('.github/workflows/release.yml', '.github/workflows/ci.yml') }}
+          restore-keys: |
+            homebrew-${{ matrix.platform }}-
 
       - name: Install macOS dependencies
         if: runner.os == 'macOS'

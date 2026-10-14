@@ -18,8 +18,11 @@ jobs:
       matrix:
         include:
           - os: windows-2022
+            platform: windows-x64
           - os: macos-15
+            platform: macos-arm64
           - os: macos-15-intel
+            platform: macos-x64
 
     runs-on: ${{ matrix.os }}
 
@@ -34,10 +37,45 @@ jobs:
         if: runner.os == 'Windows'
         uses: ilammy/msvc-dev-cmd@v1
 
+      - name: Set up vcpkg cache
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force `
+            -Path "${{ github.workspace }}/vcpkg-cache" | Out-Null
+
+          "VCPKG_BINARY_SOURCES=clear;files,${{ github.workspace }}/vcpkg-cache,readwrite" |
+            Out-File -FilePath $env:GITHUB_ENV -Append
+
+      - name: Restore vcpkg cache
+        if: runner.os == 'Windows'
+        uses: actions/cache@v4
+        with:
+          path: vcpkg-cache
+          key: vcpkg-windows-x64-${{ hashFiles('vcpkg.json', 'vcpkg-configuration.json') }}
+          restore-keys: |
+            vcpkg-windows-x64-
+
       - name: Install Windows dependencies
         if: runner.os == 'Windows'
         shell: pwsh
-        run: vcpkg install --triplet x64-windows
+        run: |
+          vcpkg install --triplet x64-windows
+
+      - name: Configure Homebrew cache
+        if: runner.os == 'macOS'
+        run: |
+          echo "HOMEBREW_NO_AUTO_UPDATE=1" >> "$GITHUB_ENV"
+          echo "HOMEBREW_CACHE=$(brew --cache)" >> "$GITHUB_ENV"
+
+      - name: Restore Homebrew cache
+        if: runner.os == 'macOS'
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.HOMEBREW_CACHE }}
+          key: homebrew-${{ matrix.platform }}-${{ hashFiles('.github/workflows/release.yml', '.github/workflows/ci.yml') }}
+          restore-keys: |
+            homebrew-${{ matrix.platform }}-
 
       - name: Install macOS dependencies
         if: runner.os == 'macOS'
@@ -51,20 +89,4 @@ jobs:
           cmake -S . -B build `
             -G Ninja `
             -DCMAKE_BUILD_TYPE=Release `
-            -DBUILD_TESTING=ON `
-            -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake"
-
-      - name: Configure macOS
-        if: runner.os == 'macOS'
-        run: |
-          cmake -S . -B build \
-            -G Ninja \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DBUILD_TESTING=ON \
-            -DCMAKE_PREFIX_PATH="$(brew --prefix);$(brew --prefix openssl@3)"
-
-      - name: Build
-        run: cmake --build build --config Release --parallel
-
-      - name: Test
-        run: ctest --test-dir build -C Release --output-on-failure
+            -DBUILD_TEST
