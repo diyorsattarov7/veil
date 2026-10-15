@@ -16,67 +16,67 @@ namespace veil::network
 {
 
 tls_client::tls_client(boost::asio::io_context &io)
-    : ssl_context_(boost::asio::ssl::context::tls_client), resolver_(io),
-      stream_(io, ssl_context_)
+    : ssl_context_(boost::asio::ssl::context::tls_client)
+    , resolver_(io)
+    , stream_(io, ssl_context_)
 {
-    ssl_context_.load_verify_file("certs/cacert.pem");
-    stream_.set_verify_mode(boost::asio::ssl::verify_peer);
+	ssl_context_.load_verify_file("certs/cacert.pem");
+	stream_.set_verify_mode(boost::asio::ssl::verify_peer);
 }
 
 void tls_client::connect(const std::string &host, unsigned short port)
 {
-    auto logger = spdlog::get("http");
+	auto logger = spdlog::get("http");
 
-    logger->debug("Connecting to {}:{}", host, port);
+	logger->debug("Connecting to {}:{}", host, port);
 
-    if (!SSL_set_tlsext_host_name(stream_.native_handle(), host.c_str()))
-    {
-        throw std::runtime_error("Failed to set TLS SNI hostname");
-    }
+	if (!SSL_set_tlsext_host_name(stream_.native_handle(), host.c_str())) {
+		throw std::runtime_error("Failed to set TLS SNI hostname");
+	}
 
-    stream_.set_verify_callback(boost::asio::ssl::host_name_verification(host));
+	stream_.set_verify_callback(
+		boost::asio::ssl::host_name_verification(host));
 
-    auto endpoints = resolver_.resolve(host, std::to_string(port));
+	auto endpoints = resolver_.resolve(host, std::to_string(port));
 
-    boost::asio::connect(stream_.lowest_layer(), endpoints);
+	boost::asio::connect(stream_.lowest_layer(), endpoints);
 
-    logger->debug("TCP connection established: {}:{}", host, port);
+	logger->debug("TCP connection established: {}:{}", host, port);
 
-    stream_.handshake(boost::asio::ssl::stream_base::client);
+	stream_.handshake(boost::asio::ssl::stream_base::client);
 
-    logger->debug("TLS handshake established: {}:{}", host, port);
+	logger->debug("TLS handshake established: {}:{}", host, port);
 }
 
 std::string tls_client::get(const std::string &host, const std::string &target)
 {
-    namespace http = boost::beast::http;
+	namespace http = boost::beast::http;
 
-    auto logger = spdlog::get("http");
+	auto logger = spdlog::get("http");
 
-    // Avoid logging the target because it may contain query parameters.
-    logger->debug("Sending HTTP GET to {}", host);
+	// Avoid logging the target because it may contain query parameters.
+	logger->debug("Sending HTTP GET to {}", host);
 
-    http::request<http::empty_body> request{http::verb::get, target, 11};
+	http::request<http::empty_body> request{http::verb::get, target, 11};
 
-    request.set(http::field::host, host);
-    request.set(http::field::user_agent, "Veil/0.1");
+	request.set(http::field::host, host);
+	request.set(http::field::user_agent, "Veil/0.1");
 
-    http::write(stream_, request);
+	http::write(stream_, request);
 
-    boost::beast::flat_buffer buffer;
-    http::response<http::string_body> response;
+	boost::beast::flat_buffer buffer;
+	http::response<http::string_body> response;
 
-    http::read(stream_, buffer, response);
+	http::read(stream_, buffer, response);
 
-    logger->debug("HTTP response status: {}", response.result_int());
+	logger->debug("HTTP response status: {}", response.result_int());
 
-    if (response.result() != http::status::ok)
-    {
-        throw std::runtime_error("HTTP request failed: " +
-                                 std::to_string(response.result_int()));
-    }
+	if (response.result() != http::status::ok) {
+		throw std::runtime_error("HTTP request failed: " +
+					 std::to_string(response.result_int()));
+	}
 
-    return response.body();
+	return response.body();
 }
 
 } // namespace veil::network
